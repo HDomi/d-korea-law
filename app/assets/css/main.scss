@@ -1,0 +1,176 @@
+/* Main stylesheet - Lawyer Dom Premium Dark Theme (SCSS) */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+$bg-main: #060608;
+$bg-surface: #0e0e11;
+$bg-surface-glass: rgba(14, 14, 17, 0.7);
+$bg-card: #15151b;
+$bg-card-hover: #1b1b24;
+$border-light: rgba(255, 255, 255, 0.08);
+$border-focus: rgba(37, 99, 235, 0.5);
+$text-primary: #f3f4f6;
+$text-secondary: #9ca3af;
+$text-muted: #6b7280;
+$accent: #2563eb;
+$accent-hover: #1d4ed8;
+$accent-glow: rgba(37, 99, 235, 0.2);
+
+:root {
+  --bg-main: #{$bg-main};
+  --bg-surface: #{$bg-surface};
+  --bg-surface-glass: #{$bg-surface-glass};
+  --bg-card: #{$bg-card};
+  --bg-card-hover: #{$bg-card-hover};
+  --border-light: #{$border-light};
+  --border-focus: #{$border-focus};
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-muted: #{$text-muted};
+  --accent: #{$accent};
+  --accent-hover: #{$accent-hover};
+  --accent-glow: #{$accent-glow};
+  
+  --font-sans: 'Outfit', 'Noto Sans KR', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --header-height: 64px;
+}
+
+/* Base resets & styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  
+  &-track {
+    background: var(--bg-main);
+  }
+  
+  &-thumb {
+    background: var(--border-light);
+    border-radius: 9999px;
+    
+    &:hover {
+      background: var(--accent);
+    }
+  }
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
+}
+
+/* Monospace Console Styling */
+.console-font {
+  font-family: var(--font-mono);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse-accent {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.glow-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+}
+
+/* Search Input Styling */
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 16px 20px;
+  padding-right: 50px;
+  font-size: 1.1rem;
+  background: rgba(21, 21, 27, 0.7);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+    background: rgba(21, 21, 27, 0.9);
+  }
+}
+
+/* Text highlighting for search terms */
+.highlight {
+  background-color: rgba(37, 99, 235, 0.35);
+  color: #fff;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  
+  &-blue {
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.2);
+  }
+  
+  &-grey {
+    background: rgba(156, 163, 175, 0.1);
+    color: var(--text-secondary);
+    border-color: rgba(156, 163, 175, 0.2);
+  }
+}
