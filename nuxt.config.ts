@@ -21,6 +21,11 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.scss'],
   devServer: {
     port: 3005
+  },
+  nitro: {
+    output: {
+      publicDir: 'dist'
+    }
   }
 })
 
