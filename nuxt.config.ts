@@ -30,7 +30,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiUrl: process.env.API_URL || 'https://server.h-domi.cloud/'
+      apiUrl: process.env.API_URL
     }
   }
 })
