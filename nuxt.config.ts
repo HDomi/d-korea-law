@@ -1,7 +1,10 @@
+const isProd = process.env.NODE_ENV === 'production'
+const baseDir = isProd ? '/d-korea-law/' : '/'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   app: {
-    baseURL: process.env.NODE_ENV === 'production' ? '/d-korea-law/' : '/',
+    baseURL: baseDir,
     head: {
       title: 'Lawyer Dom | 대한민국 국가법령 검색 서비스',
       meta: [
@@ -13,16 +16,17 @@ export default defineNuxtConfig({
         { property: 'og:description', content: '법제처 API 실시간 법령 조회 및 AI 기반 소액 민사 분쟁(임대차 보증금, 임금 체불, 사이버 사기) 단계별 대응 가이드' },
         { property: 'og:type', content: 'website' },
         { property: 'og:url', content: 'https://hdomi.github.io/d-korea-law/' },
-        { property: 'og:image', content: '/d-korea-law/og-image.png' },
+        { property: 'og:image', content: `${baseDir}og-image.png` },
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:title', content: 'Lawyer Dom | 대한민국 국가법령 검색 서비스' },
         { name: 'twitter:description', content: '법제처 API 실시간 법령 조회 및 AI 기반 소액 민사 분쟁 단계별 대응 가이드' },
-        { name: 'twitter:image', content: '/d-korea-law/og-image.png' }
+        { name: 'twitter:image', content: `${baseDir}og-image.png` }
       ],
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
+        { rel: 'icon', type: 'image/svg+xml', href: `${baseDir}favicon.svg` },
+        { rel: 'alternate icon', type: 'image/x-icon', href: `${baseDir}favicon.ico` }
       ]
     }
   },
