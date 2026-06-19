@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   app: {
+    baseURL: process.env.NODE_ENV === 'production' ? '/d-korea-law/' : '/',
     head: {
       title: 'Lawyer Dom | 대한민국 국가법령 검색 서비스',
       meta: [
