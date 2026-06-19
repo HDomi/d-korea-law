@@ -27,6 +27,11 @@ export default defineNuxtConfig({
     output: {
       publicDir: 'dist'
     }
+  },
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.API_URL || 'https://server.h-domi.cloud/'
+    }
   }
 })
 

@@ -240,6 +240,9 @@ import type { LawItem, LawDetail } from '~/types';
 
 const emit = defineEmits(['search-triggered']);
 
+const config = useRuntimeConfig();
+const apiUrl = (config.public.apiUrl as string) || 'https://server.h-domi.cloud/';
+
 const query = ref('');
 const lastSearchQuery = ref('');
 const isSearchMode = ref(false);
@@ -341,7 +344,8 @@ async function triggerSearch() {
 
   // AI Law Guide Search only
   try {
-    const data = await $fetch<any>('/api/law-guide', {
+    const targetUrl = `${apiUrl.endsWith('/') ? apiUrl : apiUrl + '/'}api/law-guide`;
+    const data = await $fetch<any>(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -391,7 +395,8 @@ async function selectLaw(law: any) {
   mobileActiveView.value = 'detail'; // Switch view on mobile
 
   try {
-    const url = `/api/detail?mst=${law.mst}&id=${law.idNumber}`;
+    const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+    const url = `${baseUrl}api/detail?mst=${law.mst}&id=${law.idNumber}`;
     const data = await $fetch<any>(url);
     activeLaw.value = data;
   } catch (error: any) {
