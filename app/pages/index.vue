@@ -21,18 +21,45 @@
           <p class="landing-subtitle text-muted">대한민국 법제처 API 연동 실시간 국가법령 검색 서비스</p>
         </div>
 
+        <!-- Domain Guidance Cards Grid -->
+        <div class="domain-grid animate-slide-up">
+          <div 
+            v-for="cat in categories" 
+            :key="cat.id" 
+            :class="['domain-card', selectedCategory === cat.id ? 'active' : '']"
+            @click="selectCategoryAndFocus(cat.id)"
+          >
+            <div class="domain-card-header">
+              <span class="domain-icon">{{ cat.icon }}</span>
+              <h3 class="domain-name">{{ cat.label }}</h3>
+            </div>
+            <p class="domain-keywords text-muted">{{ cat.keywords }}</p>
+            <div class="domain-hover-info">
+              <div class="info-section">
+                <span class="info-label">소액 분쟁 상황:</span>
+                <span class="info-value">{{ cat.situation }}</span>
+              </div>
+              <div class="info-section">
+                <span class="info-label">대응 완성 서류:</span>
+                <span class="info-value accent-text">{{ cat.documents }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Central Search Bar -->
-        <div class="search-box-wrapper">
+        <div class="search-box-wrapper animate-slide-up">
           <form @submit.prevent="triggerSearch">
             <div class="search-container">
               <input 
+                ref="searchInput"
                 type="text" 
                 v-model="query" 
                 class="search-input glow-hover" 
-                placeholder="법령명 또는 검색어를 입력하세요 (예: 헌법, 도로교통법, 민법)"
+                :placeholder="searchPlaceholder"
                 required
               />
-              <button type="submit" class="search-submit-btn" aria-label="검색">
+              <button type="submit" class="search-submit-btn" :disabled="!query.trim()" aria-label="검색">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="11" cy="11" r="8"></circle>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -42,26 +69,26 @@
           </form>
         </div>
 
-        <!-- Quick Tags -->
-        <div class="quick-tags-wrapper">
-          <span class="tags-label text-muted">신속 검색어:</span>
+        <!-- Dynamic Quick Suggestions matching category -->
+        <div class="quick-tags-wrapper animate-slide-up">
+          <span class="tags-label text-muted">예시 질문 클릭해보기:</span>
           <div class="quick-tags">
             <button 
-              v-for="tag in quickTags" 
-              :key="tag" 
-              class="tag-btn-item"
-              @click="searchQuickTag(tag)"
+              v-for="ex in aiExamples" 
+              :key="ex.text" 
+              class="tag-btn-item example animate-fade-in"
+              @click="useAiExample(ex)"
             >
-              # {{ tag }}
+              "{{ ex.text }}"
             </button>
           </div>
         </div>
       </div>
 
       <!-- SEARCH RESULT MODE (Split Screen Layout) -->
-      <div v-else class="results-split-layout">
+      <div v-else class="results-split-layout" :class="{ 'full-width-mode': !!activeGuide || (loading && isAiMode) }">
         <!-- Sidebar: Results List -->
-        <aside :class="['sidebar-results', mobileActiveView === 'list' ? 'mobile-active' : '']" aria-label="검색 결과 목록">
+        <aside v-if="!activeGuide && !(loading && isAiMode)" :class="['sidebar-results', mobileActiveView === 'list' ? 'mobile-active' : '']" aria-label="검색 결과 목록">
           <!-- Small Search bar at top of sidebar -->
           <div class="sidebar-search-box">
             <form @submit.prevent="triggerSearch">
@@ -134,9 +161,9 @@
         </aside>
 
         <!-- Right Side: Details View -->
-        <section :class="['detail-content-wrapper', mobileActiveView === 'detail' ? 'mobile-active' : '']" aria-label="법령 상세 정보">
+        <section :class="['detail-content-wrapper', activeGuide ? 'full-width' : '', mobileActiveView === 'detail' ? 'mobile-active' : '']" aria-label="법령 상세 정보">
           <!-- Mobile Back Button to Results List -->
-          <div class="mobile-back-bar">
+          <div class="mobile-back-bar" v-if="!activeGuide">
             <button class="back-to-list-btn" @click="mobileActiveView = 'list'">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -146,11 +173,41 @@
             </button>
           </div>
 
-          <!-- Loading placeholder for detail -->
-          <div v-if="detailLoading" class="detail-loader">
+          <!-- Loading placeholder for AI Guide -->
+          <div v-if="loading && isAiMode" class="ai-guide-loader animate-fade-in">
+            <div class="ai-radar-animation">
+              <div class="radar-circle"></div>
+              <div class="radar-circle inner"></div>
+              <span class="ai-sparkles">✨</span>
+            </div>
+            <h3 class="loader-title">AI 법률 솔루션 분석 중</h3>
+            <p class="loader-subtitle text-muted">
+              작성하신 내용을 분석하고 관련 법령 정보 및 판례 데이터를 조합하여 맞춤형 대응 가이드를 생성하고 있습니다.
+            </p>
+            <div class="loader-steps">
+              <div class="loader-step active"><span class="step-dot"></span> 겪으신 상황 핵심 사실 식별 중...</div>
+              <div class="loader-step"><span class="step-dot"></span> 주택임대차보호법, 근로기준법 등 관련 조문 검색 중...</div>
+              <div class="loader-step"><span class="step-dot"></span> 법제처 유관 행정 규칙 및 판례 대조 분석 중...</div>
+            </div>
+          </div>
+
+          <!-- Loading placeholder for detail (Standard Mode) -->
+          <div v-else-if="detailLoading" class="detail-loader">
             <div class="spinner"></div>
             <p class="text-muted console-font">법제처 데이터베이스 조회 중...</p>
           </div>
+
+          <!-- AI Guide viewer -->
+          <LawGuideView
+            v-else-if="activeGuide"
+            :guideText="activeGuide.guide"
+            :category="activeGuide.category"
+            :searchKeyword="activeGuide.searchKeyword"
+            :laws="activeGuide.rawLawData.laws"
+            :precedents="activeGuide.rawLawData.precedents"
+            :others="activeGuide.rawLawData.others"
+            :userQuery="lastSearchQuery"
+          />
 
           <!-- Detail viewer -->
           <LawDetailView 
@@ -165,8 +222,9 @@
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
             </svg>
-            <p>검색 결과에서 법령을 선택해 주세요.</p>
-            <p class="text-muted text-sm">좌측 목록에서 항목을 클릭하면 실시간 법령 조문을 열람할 수 있습니다.</p>
+            <p v-if="isAiMode">AI 법률 분석 결과를 가져올 수 없거나 비어 있습니다.</p>
+            <p v-else>검색 결과에서 법령을 선택해 주세요.</p>
+            <p class="text-muted text-sm" v-if="!isAiMode">좌측 목록에서 항목을 클릭하면 실시간 법령 조문을 열람할 수 있습니다.</p>
           </div>
         </section>
 
@@ -176,7 +234,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
+import { useState } from '#app';
 import type { LawItem, LawDetail } from '~/types';
 
 const emit = defineEmits(['search-triggered']);
@@ -188,15 +247,84 @@ const loading = ref(false);
 const detailLoading = ref(false);
 const errorMessage = ref('');
 
+const resetTrigger = useState('reset-search-trigger', () => 0);
+watch(resetTrigger, () => {
+  resetState();
+});
+
 const lawsList = ref<LawItem[]>([]);
 const searchCount = ref(0);
 const selectedMst = ref('');
 const activeLaw = ref<LawDetail | null>(null);
 
+// AI Law Guide state (Always true now)
+const isAiMode = ref(true);
+const selectedCategory = ref('housing');
+const activeGuide = ref<any>(null);
+const searchInput = ref<HTMLInputElement | null>(null);
+
+const categories = [
+  {
+    id: 'housing',
+    label: '부동산/주거',
+    icon: '🏠',
+    keywords: '전세보증금 미반환 & 원룸 월세 보증금 먹튀',
+    situation: '계약 만기 후 임대인의 보증금 미반환 및 연락 두절',
+    documents: '내용증명, 임차권등기명령 신청서'
+  },
+  {
+    id: 'labor',
+    label: '노동/직장',
+    icon: '💼',
+    keywords: '임금체불 & 주휴수당 미지급',
+    situation: '아르바이트/중소기업 퇴사자의 급여, 퇴직금, 주휴수당 체불',
+    documents: '임금체불 진정서, 체불 임금 산정 내역서'
+  },
+  {
+    id: 'scam',
+    label: '사이버/민사',
+    icon: '📱',
+    keywords: '중고거래 사기 & 소액 먹튀',
+    situation: '당근마켓/번개장터/중고나라 거래 사기 및 잠적',
+    documents: '경찰 제출용 고소장 및 진정서'
+  }
+];
+
+const rawAiExamples = [
+  { text: "원룸 월세가 만기됐는데 집주인이 전화를 안 받고 보증금 300만 원을 안 줍니다.", category: "housing" },
+  { text: "전세 계약이 만료되었는데 임대인이 다음 세입자가 구해질 때까지 보증금을 안 줍니다.", category: "housing" },
+  { text: "석 달 동안 아르바이트를 했는데 급여와 주휴수당 120만 원이 입금되지 않았습니다.", category: "labor" },
+  { text: "퇴사한 지 14일이 넘었는데도 회사에서 퇴직금과 마지막 달 월급을 지급하지 않고 있습니다.", category: "labor" },
+  { text: "인터넷 중고 장터에서 40만 원 상당의 기기를 거래했는데, 돈을 송금받은 판매자가 잠적했습니다.", category: "scam" },
+  { text: "당근마켓에서 소액 거래 사기를 당했습니다. 돈만 입금받고 연락 두절 상태입니다.", category: "scam" }
+];
+
+const aiExamples = computed(() => {
+  return rawAiExamples.filter(ex => ex.category === selectedCategory.value);
+});
+
+const searchPlaceholder = computed(() => {
+  if (selectedCategory.value === 'housing') {
+    return '원룸 보증금 먹튀, 월세/전세보증금 미반환 상황을 상세히 적어주세요...';
+  } else if (selectedCategory.value === 'labor') {
+    return '아르바이트/직장 임금체불, 주휴수당 미지급, 퇴직금 미지급 등의 상황을 적어주세요...';
+  } else if (selectedCategory.value === 'scam') {
+    return '당근마켓, 중고나라 등 소액 중고거래 사기 및 먹튀 상황을 적어주세요...';
+  }
+  return '겪으신 소액 법률 분쟁 상황을 자세히 입력해 주세요...';
+});
+
+function selectCategoryAndFocus(catId: string) {
+  selectedCategory.value = catId;
+  nextTick(() => {
+    searchInput.value?.focus();
+  });
+}
+
 // For mobile responsive toggle
 const mobileActiveView = ref<'list' | 'detail'>('list');
 
-const quickTags = ['헌법', '도로교통법', '저작권법', '민법', '상법', '형법'];
+// const quickTags = ['헌법', '도로교통법', '저작권법', '민법', '상법', '형법']; // Commented out standard search tags
 
 // Trigger search via API proxy
 async function triggerSearch() {
@@ -207,38 +335,51 @@ async function triggerSearch() {
   loading.value = true;
   errorMessage.value = '';
   lastSearchQuery.value = searchQuery;
-  mobileActiveView.value = 'list';
+  mobileActiveView.value = 'detail';
+  activeLaw.value = null;
+  activeGuide.value = null;
 
+  // AI Law Guide Search only
   try {
-    const url = `/api/search?query=${encodeURIComponent(searchQuery)}`;
-    const data = await $fetch<any>(url);
+    const data = await $fetch<any>('/api/law-guide', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: {
+        userMessage: searchQuery,
+        category: selectedCategory.value
+      }
+    });
 
-    lawsList.value = data.laws || [];
-    searchCount.value = data.totalCount || 0;
-
-    // Auto-select first law if results found
-    if (lawsList.value.length > 0) {
-      await selectLaw(lawsList.value[0]);
+    if (data && data.success) {
+      activeGuide.value = data;
     } else {
-      activeLaw.value = null;
-      selectedMst.value = '';
+      throw new Error('AI 법률 가이드 작성 결과를 받아오는 데 실패했습니다.');
     }
   } catch (error: any) {
-    console.error('Search failed:', error);
-    errorMessage.value = error.data?.statusMessage || error.message || '법령을 검색하는 도중 에러가 발생했습니다.';
-    lawsList.value = [];
-    searchCount.value = 0;
-    activeLaw.value = null;
-    selectedMst.value = '';
+    console.error('AI Guide generation failed:', error);
+    errorMessage.value = error.data?.statusMessage || error.message || 'AI 법률 가이드를 작성하는 도중 에러가 발생했습니다.';
+    activeGuide.value = null;
   } finally {
     loading.value = false;
     emit('search-triggered', searchQuery);
   }
 }
 
-// Search a quick tag directly
+// Commented out standard search logic
+/*
 function searchQuickTag(tag: string) {
   query.value = tag;
+  isAiMode.value = false;
+  triggerSearch();
+}
+*/
+
+function useAiExample(ex: { text: string, category: string }) {
+  query.value = ex.text;
+  selectedCategory.value = ex.category;
+  isAiMode.value = true;
   triggerSearch();
 }
 
@@ -275,9 +416,12 @@ function resetState() {
   isSearchMode.value = false;
   lawsList.value = [];
   activeLaw.value = null;
+  activeGuide.value = null;
   selectedMst.value = '';
   errorMessage.value = '';
   mobileActiveView.value = 'list';
+  isAiMode.value = true;
+  selectedCategory.value = 'housing';
 }
 
 defineExpose({
@@ -339,6 +483,124 @@ defineExpose({
         }
       }
 
+      .domain-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        width: 100%;
+        max-width: 800px;
+        margin-bottom: 32px;
+        
+        @media (max-width: 768px) {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .domain-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        
+        &:hover {
+          transform: translateY(-4px);
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(255, 255, 255, 0.15);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+          
+          .domain-hover-info {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        &.active {
+          background: rgba(37, 99, 235, 0.04);
+          border-color: var(--accent);
+          box-shadow: 0 0 20px var(--accent-glow), inset 0 0 12px rgba(37, 99, 235, 0.1);
+          
+          .domain-icon {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 8px var(--accent-glow));
+          }
+          
+          .domain-name {
+            color: #fff;
+          }
+        }
+        
+        .domain-card-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          position: relative;
+          z-index: 2;
+          
+          .domain-icon {
+            font-size: 1.4rem;
+            transition: transform 0.3s ease;
+          }
+          
+          .domain-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+          }
+        }
+        
+        .domain-keywords {
+          font-size: 0.8rem;
+          font-weight: 500;
+          color: var(--text-secondary);
+          position: relative;
+          z-index: 2;
+        }
+        
+        .domain-hover-info {
+          margin-top: 6px;
+          padding-top: 10px;
+          border-top: 1px dashed rgba(255, 255, 255, 0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          position: relative;
+          z-index: 2;
+          transition: all 0.3s ease;
+          
+          .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            
+            .info-label {
+              font-size: 0.72rem;
+              color: var(--text-muted);
+              font-weight: 600;
+            }
+            
+            .info-value {
+              font-size: 0.8rem;
+              color: var(--text-secondary);
+              line-height: 1.35;
+              
+              &.accent-text {
+                color: #93c5fd; /* Soft blue text */
+                font-weight: 600;
+              }
+            }
+          }
+        }
+      }
+
       .search-box-wrapper {
         width: 100%;
         max-width: 640px;
@@ -364,6 +626,18 @@ defineExpose({
           &:hover {
             background: var(--accent-hover);
             box-shadow: 0 0 10px var(--accent-glow);
+          }
+
+          &:disabled {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none !important;
+            
+            &:hover {
+              background: rgba(255, 255, 255, 0.04);
+              box-shadow: none !important;
+            }
           }
 
           svg {
@@ -417,6 +691,10 @@ defineExpose({
       height: calc(100vh - var(--header-height));
       width: 100%;
       overflow: hidden;
+      
+      &.full-width-mode {
+        grid-template-columns: 1fr !important;
+      }
       
       .sidebar-results {
         border-right: 1px solid var(--border-light);
@@ -735,4 +1013,222 @@ defineExpose({
     }
   }
 }
+
+  /* Search Mode Tabs Switcher */
+  .search-mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-light);
+    padding: 4px;
+    border-radius: 20px;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    
+    .mode-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 6px 16px;
+      border-radius: 16px;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      
+      &:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      
+      &.active {
+        color: #fff;
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent-glow);
+      }
+    }
+  }
+
+  /* Category Selector */
+  .category-selector-wrapper {
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 640px;
+    
+    .category-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      
+      .category-pill-btn {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-light);
+        color: var(--text-secondary);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-family: var(--font-sans);
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+          color: var(--text-primary);
+        }
+        
+        &.active {
+          background: rgba(37, 99, 235, 0.1);
+          border-color: var(--accent);
+          color: var(--accent);
+          box-shadow: 0 0 8px var(--accent-glow);
+        }
+      }
+    }
+  }
+
+  /* AI Mode Example suggestions */
+  .quick-tags-wrapper {
+    .quick-tags {
+      .tag-btn-item.example {
+        font-style: italic;
+        background: rgba(37, 99, 235, 0.03);
+        border-color: rgba(37, 99, 235, 0.12);
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        
+        &:hover {
+          background: rgba(37, 99, 235, 0.08);
+          border-color: var(--accent);
+          color: var(--text-primary);
+        }
+      }
+    }
+  }
+
+  /* AI Guide Loader and animations */
+  .ai-guide-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 40px 20px;
+    gap: 20px;
+    
+    .ai-radar-animation {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+      
+      .radar-circle {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 1.5px solid var(--accent);
+        border-radius: 50%;
+        animation: ping-radar 2.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        opacity: 0;
+        
+        &.inner {
+          width: 60%;
+          height: 60%;
+          animation-delay: 0.8s;
+        }
+      }
+      
+      .ai-sparkles {
+        font-size: 2.2rem;
+        animation: wobble-sparkle 2s ease-in-out infinite;
+      }
+    }
+    
+    .loader-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .loader-subtitle {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    
+    .loader-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-light);
+      padding: 14px 18px;
+      border-radius: 12px;
+      text-align: left;
+      
+      .loader-step {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: loop-steps-opacity 6s infinite;
+        
+        &:nth-child(1) { animation-delay: 0s; }
+        &:nth-child(2) { animation-delay: 2s; }
+        &:nth-child(3) { animation-delay: 4s; }
+        
+        .step-dot {
+          width: 5px;
+          height: 5px;
+          background: var(--text-muted);
+          border-radius: 50%;
+        }
+        
+        &.active {
+          color: var(--text-primary);
+          
+          .step-dot {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+          }
+        }
+      }
+    }
+  }
+
+  @keyframes ping-radar {
+    0% { transform: scale(0.6); opacity: 0.8; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  
+  @keyframes wobble-sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.15) rotate(12deg); }
+  }
+
+  @keyframes loop-steps-opacity {
+    0%, 100% { color: var(--text-muted); }
+    33% { color: var(--text-primary); }
+    66% { color: var(--text-muted); }
+  }
 </style>
+

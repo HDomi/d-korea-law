@@ -31,3 +31,51 @@ export interface LawDetail {
   department: string;
   articles: Article[];
 }
+
+// AI Law Guide Interfaces
+export interface RawLaw {
+  lawId: string;
+  title: string;
+  articleNumber: string;
+  paragraphNumber: string;
+  articleTitle: string;
+  content: string;
+  link: string;
+}
+
+export interface RawPrecedent {
+  precId: string;
+  caseName: string;
+  caseNumber: string;
+  judgmentDate: string;
+  court: string;
+  caseType: string;
+  judgmentType: string;
+  link: string;
+}
+
+export interface RawOther {
+  id: string;
+  title?: string;
+  caseName?: string;
+  caseNumber?: string;
+  judgmentDate?: string;
+  court?: string;
+  link: string;
+  targetType: string;
+}
+
+export interface RawLawData {
+  laws: RawLaw[];
+  precedents: RawPrecedent[];
+  others: RawOther[];
+}
+
+export interface LawGuideResponse {
+  success: boolean;
+  category: string;
+  searchKeyword: string;
+  guide: string;
+  rawLawData: RawLawData;
+}
+

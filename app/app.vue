@@ -15,17 +15,14 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref } from 'vue';
+import { useState } from '#app';
 
-const pageRef = ref<any>(null);
+const resetTrigger = useState('reset-search-trigger', () => 0);
 
 // Reset search state on header logo/new search button click
 function handleReset() {
-  if (pageRef.value && typeof pageRef.value.resetState === 'function') {
-    pageRef.value.resetState();
-  }
+  resetTrigger.value++;
 }
 
 function handleSearchTriggered(q: string) {
